@@ -1,5 +1,11 @@
 import os
 import wandb
+
+import evaluate
+import nltk
+import numpy as np
+from nltk.tokenize import sent_tokenize
+
 from datasets import load_dataset, concatenate_datasets
 from transformers import DataCollatorForSeq2Seq
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
@@ -53,7 +59,7 @@ os.environ["WANDB_WATCH"] = wandb.config.wandb_watch
 
 
 # Load dataset from the hub
-dataset = load_dataset(dataset_id)
+dataset = load_dataset(wandb.config.dataset_id)
 
 if wandb.config.debug_mode:
   dataset['train'] = dataset['train'].select(wandb.config.dataset_indices)
@@ -106,10 +112,6 @@ tokenized_dataset = dataset.map(preprocess_function, batched=True, remove_column
 print(f"Keys of tokenized dataset: {list(tokenized_dataset['train'].features)}")
 
 # METRICS
-import evaluate
-import nltk
-import numpy as np
-from nltk.tokenize import sent_tokenize
 nltk.download("punkt")
 
 # Metric
