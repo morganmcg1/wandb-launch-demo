@@ -1,5 +1,7 @@
+wandb
 transformers
 datasets
+evaluate
 rouge-score
 nltk
 py7zr
