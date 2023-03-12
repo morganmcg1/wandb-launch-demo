@@ -29,14 +29,14 @@ config = {
     "eval_steps":100,
     "save_total_limit":2,
     "save_strategy": "steps", # "epoch",
-    "output_dir": f"{wandb.config.model_id.split('/')[1]}-{wandb.config.dataset_id}",
-
+   
     # Debugging
     "debug_mode" : True,
     "debug_dataset_indices" : list(range(128))
 
 }
 
+config["output_dir"] = f"{config['model_id'].split('/')[1]}-{config['dataset_id']}"
 
 # START A WANDB RUN
 WANDB_PROJECT = "launch-demo-flan-t5"
