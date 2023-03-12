@@ -31,7 +31,7 @@ config = {
     "logging_steps":5,
     "fp16":False,
     "run_name" : None,
-    "evaluation_strategy":"epoch",
+    "evaluation_strategy":"steps", # "epoch",
     "eval_steps":100,
     "save_total_limit":2,
     "save_strategy": "steps", # "epoch",
