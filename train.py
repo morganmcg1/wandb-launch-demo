@@ -62,8 +62,8 @@ os.environ["WANDB_WATCH"] = wandb.config.wandb_watch
 dataset = load_dataset(wandb.config.dataset_id)
 
 if wandb.config.debug_mode:
-  dataset['train'] = dataset['train'].select(wandb.config.dataset_indices)
-  dataset['test'] = dataset['test'].select(wandb.config.dataset_indices)
+  dataset['train'] = dataset['train'].select(wandb.config.debug_dataset_indices)
+  dataset['test'] = dataset['test'].select(wandb.config.debug_dataset_indices)
 
 print(f"Train dataset size: {len(dataset['train'])}")
 print(f"Test dataset size: {len(dataset['test'])}")
