@@ -81,11 +81,11 @@ def parse_args(input_args=None):
         help="Evaluation batch size per device",
     )  
     parser.add_argument(
-        "--log_launch_code_only",
+        "--log_wandb_job_code_only",
         type=bool,
         default=False,
         required=False,
-        help="Evaluation batch size per device",
+        help="Only log the code to a Weights & Biases Job",
     )    
 
     if input_args is not None:
@@ -137,6 +137,7 @@ def main(args):
     # If we only want to log the code as a W&B Job, we can finish the run here
     if args.log_launch_code_only: 
         run.finish()
+        exit()
 
     # Set environment variables for HF Trainer's wandb logging
     os.environ["WANDB_LOG_MODEL"] = args.wandb_log_model
