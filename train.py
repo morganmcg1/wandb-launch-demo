@@ -28,7 +28,7 @@ def parse_args(input_args=None):
         "--wandb_project",
         type=str,
         default='launch-demo-flan-t5',
-        required=True,
+        required=False,
         help="Weights & Biases Project name",
     )
     parser.add_argument(
@@ -79,8 +79,14 @@ def parse_args(input_args=None):
         default=8,
         required=False,
         help="Evaluation batch size per device",
-    )   
-    
+    )  
+    parser.add_argument(
+        "--log_code_to_wandb_job_only",
+        default=False,
+        action="store_true",
+        help="Only log the code to a Weights & Biases Job",
+    )    
+
     if input_args is not None:
         args = parser.parse_args(input_args)
     else:
@@ -112,23 +118,26 @@ def main(args):
         # Debugging
         "debug_mode":True,
         "debug_dataset_indices":list(range(128)),
-        "log_code_only":True
     }   
     config["output_dir"] = f"{config['model_id'].split('/')[1]}-{config['dataset_id']}"
 
     # Start a Weights & Biases run and log the config
-    config = {**args, **config}
+    config = {**vars(args), **config}
     run = wandb.init(entity=args.wandb_entity,
             project=args.wandb_project,
             config=config)
+    
+    # Set all args to use the config defined in the Weights & Biases run
     args = run.config
 
     # Log the training script to Weighs & Biases for Launch to re-use
     run.log_code()
     
-    # todo ADD debug arg
-    if args.log_code_only: 
+    # If we only want to log the code as a W&B Job, we can finish the run here
+    if args.log_code_to_wandb_job_only: 
+        print("Finising the wandb run and exiting...")
         run.finish()
+        exit()
 
     # Set environment variables for HF Trainer's wandb logging
     os.environ["WANDB_LOG_MODEL"] = args.wandb_log_model
