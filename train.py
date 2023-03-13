@@ -71,9 +71,10 @@ def parse_args(input_args=None):
 
 def main(args):
     # START A WANDB RUN
-    wandb.init(entity=args.wandb_entity,
+    run = wandb.init(entity=args.wandb_entity,
             project=args.wandb_project,
             config=config)
+    run.log_code()
 
     # Set environment variables for HF Trainer's wandb logging
     os.environ["WANDB_LOG_MODEL"] = wandb.config.wandb_log_model
