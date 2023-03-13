@@ -46,7 +46,7 @@ config["output_dir"] = f"{config['model_id'].split('/')[1]}-{config['dataset_id'
 
 # START A WANDB RUN
 WANDB_PROJECT = "launch-demo-flan-t5"
-WANDB_ENTITY = "launch-demos"
+WANDB_ENTITY = "launch-test"
 
 
 wandb.init(entity=WANDB_ENTITY, 
