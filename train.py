@@ -1,3 +1,12 @@
+'''
+    This script is a simple example of how to use Weights & Biases Launch
+
+    Credits:
+    This script is based on an example script from Philipp Schmid
+      - blog: post:https://www.philschmid.de/fine-tune-flan-t5
+      - code: https://github.com/philschmid/deep-learning-pytorch-huggingface/blob/main/training/flan-t5-samsum-summarization.ipynb
+'''
+
 import os
 import wandb
 import argparse
@@ -12,38 +21,6 @@ from transformers import DataCollatorForSeq2Seq
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments
 
-config = {
-    
-    "dataset_id":"samsum",
-    "model_id": "google/flan-t5-base",
-
-    # Trainer wandb environment variables
-    "wandb_log_model": "checkpoint",
-    "wandb_watch" : 'false',
-
-    # Trainer arguments
-    "learning_rate": 5e-5,
-    "per_device_train_batch_size":8,
-    "per_device_eval_batch_size":8,
-    "gradient_accumulation_steps":1,
-    "max_steps":1000,
-    "warmup_steps":100,
-    "num_train_epochs":1,
-    "logging_steps":5,
-    "fp16":False,
-    "run_name" : None,
-    "evaluation_strategy":"steps", # "epoch",
-    "eval_steps":100,
-    "save_total_limit":2,
-    "save_strategy": "steps", # "epoch",
-   
-    # Debugging
-    "debug_mode" : True,
-    "debug_dataset_indices" : list(range(128))
-
-}
-
-config["output_dir"] = f"{config['model_id'].split('/')[1]}-{config['dataset_id']}"
 
 def parse_args(input_args=None):
     parser = argparse.ArgumentParser(description="Simple example of a training script.")
@@ -61,7 +38,49 @@ def parse_args(input_args=None):
         required=False,
         help="Weights & Biases Team or Username to log to",
     )
-
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default=5e-5,
+        required=False,
+        help="Learning rate to use for training",
+    )
+    parser.add_argument(
+        "--warmup_steps",
+        type=int,
+        default=100,
+        required=False,
+        help="Learning rate warmup steps",
+    )
+    parser.add_argument(
+        "--num_train_epochs",
+        type=int,
+        default=1,
+        required=False,
+        help="Number of epochs to train for",
+    )
+    parser.add_argument(
+        "--gradient_accumulation_steps",
+        type=int,
+        default=1,
+        required=False,
+        help="Number of steps to accumulate gradients for",
+    )
+    parser.add_argument(
+        "--per_device_train_batch_size",
+        type=int,
+        default=8,
+        required=False,
+        help="Training batch size per device",
+    )
+    parser.add_argument(
+        "--per_device_eval_batch_size",
+        type=int,
+        default=8,
+        required=False,
+        help="Evaluation batch size per device",
+    )   
+    
     if input_args is not None:
         args = parser.parse_args(input_args)
     else:
@@ -71,30 +90,64 @@ def parse_args(input_args=None):
 
 def main(args):
     # START A WANDB RUN
+
+    config = {
+        "dataset_id":"samsum",
+        "model_id": "google/flan-t5-base",
+
+        # Trainer arguments
+        "max_steps":1000,
+        "logging_steps":5,
+        "fp16":False,
+        "run_name":None,
+        "evaluation_strategy":"steps", # "epoch",
+        "eval_steps":100,
+        "save_total_limit":2,
+        "save_strategy":"steps", # "epoch",
+
+        # Trainer wandb environment variables
+        "wandb_log_model":"checkpoint",
+        "wandb_watch":'false',
+    
+        # Debugging
+        "debug_mode":True,
+        "debug_dataset_indices":list(range(128)),
+        "log_code_only":True
+    }   
+    config["output_dir"] = f"{config['model_id'].split('/')[1]}-{config['dataset_id']}"
+
+    # Start a Weights & Biases run and log the config
+    config = {**args, **config}
     run = wandb.init(entity=args.wandb_entity,
             project=args.wandb_project,
             config=config)
+    args = run.config
+
+    # Log the training script to Weighs & Biases for Launch to re-use
     run.log_code()
+    
+    # todo ADD debug arg
+    if args.log_code_only: 
+        run.finish()
 
     # Set environment variables for HF Trainer's wandb logging
-    os.environ["WANDB_LOG_MODEL"] = wandb.config.wandb_log_model
-    os.environ["WANDB_WATCH"] = wandb.config.wandb_watch
-
+    os.environ["WANDB_LOG_MODEL"] = args.wandb_log_model
+    os.environ["WANDB_WATCH"] = args.wandb_watch
 
     # Load dataset from the hub
-    dataset = load_dataset(wandb.config.dataset_id)
+    dataset = load_dataset(args.dataset_id)
 
-    if wandb.config.debug_mode:
-        dataset['train'] = dataset['train'].select(wandb.config.debug_dataset_indices)
-        dataset['test'] = dataset['test'].select(wandb.config.debug_dataset_indices)
+    if args.debug_mode:
+        dataset['train'] = dataset['train'].select(args.debug_dataset_indices)
+        dataset['test'] = dataset['test'].select(args.debug_dataset_indices)
 
     print(f"Train dataset size: {len(dataset['train'])}")
     print(f"Test dataset size: {len(dataset['test'])}")
 
 
     # Load model and tokenizer of FLAN-t5-base
-    tokenizer = AutoTokenizer.from_pretrained(wandb.config.model_id)
-    model = AutoModelForSeq2SeqLM.from_pretrained(wandb.config.model_id)
+    tokenizer = AutoTokenizer.from_pretrained(args.model_id)
+    model = AutoModelForSeq2SeqLM.from_pretrained(args.model_id)
 
 
     # DATA PREPROCESSING
@@ -183,21 +236,21 @@ def main(args):
     # Set training args
     training_args = Seq2SeqTrainingArguments(
         report_to="wandb",
-        run_name=wandb.config.run_name,
-        output_dir=wandb.config.output_dir,
-        per_device_train_batch_size=wandb.config.per_device_train_batch_size,
-        per_device_eval_batch_size=wandb.config.per_device_eval_batch_size,
-        gradient_accumulation_steps=wandb.config.gradient_accumulation_steps,
+        run_name=args.run_name,
+        output_dir=args.output_dir,
+        per_device_train_batch_size=args.per_device_train_batch_size,
+        per_device_eval_batch_size=args.per_device_eval_batch_size,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
         predict_with_generate=True,
-        fp16=wandb.config.fp16, # Overflows with fp16
-        learning_rate=wandb.config.learning_rate,
-        num_train_epochs=wandb.config.num_train_epochs,
+        fp16=args.fp16,
+        learning_rate=args.learning_rate,
+        num_train_epochs=args.num_train_epochs,
         # logging & evaluation strategies
         logging_strategy="steps",
-        logging_steps=wandb.config.logging_steps,
-        evaluation_strategy=wandb.config.evaluation_strategy,
-        save_strategy=wandb.config.save_strategy,
-        save_total_limit=wandb.config.save_total_limit,
+        logging_steps=args.logging_steps,
+        evaluation_strategy=args.evaluation_strategy,
+        save_strategy=args.save_strategy,
+        save_total_limit=args.save_total_limit,
         load_best_model_at_end=True,
         # metric_for_best_model="overall_f1",
     )
