@@ -81,10 +81,9 @@ def parse_args(input_args=None):
         help="Evaluation batch size per device",
     )  
     parser.add_argument(
-        "--log_wandb_job_code_only",
-        type=bool,
+        "--log_code_to_wandb_job_only",
         default=False,
-        required=False,
+        action="store_true",
         help="Only log the code to a Weights & Biases Job",
     )    
 
@@ -135,7 +134,8 @@ def main(args):
     run.log_code()
     
     # If we only want to log the code as a W&B Job, we can finish the run here
-    if args.log_launch_code_only: 
+    if args.log_code_to_wandb_job_only: 
+        print("Finising the wandb run and exiting...")
         run.finish()
         exit()
 
