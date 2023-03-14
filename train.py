@@ -124,7 +124,9 @@ def main(args):
 
     # Start a Weights & Biases run and log the config
     config = {**vars(args), **config}
-    run = wandb.init(entity=args.wandb_entity,
+    run = wandb.init(
+            name=args.run_name,
+            entity=args.wandb_entity,
             project=args.wandb_project,
             config=config)
     
