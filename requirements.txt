@@ -1,3 +1,4 @@
+torch
 wandb
 transformers
 datasets
