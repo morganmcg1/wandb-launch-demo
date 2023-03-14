@@ -99,20 +99,20 @@ def main(args):
     # START A WANDB RUN
 
     config = {
+        # Dataset and model
         "dataset_id":"samsum",
         "model_id": "google/flan-t5-base",
 
-        # Trainer arguments
-        "max_steps":1000,
+        # HF Trainer arguments (except for those in `args`)
         "logging_steps":5,
         "fp16":False,
-        "run_name":None,
         "evaluation_strategy":"steps", # "epoch",
         "eval_steps":100,
         "save_total_limit":2,
         "save_strategy":"steps", # "epoch",
 
-        # Trainer wandb environment variables
+        # Trainer wandb settings
+        "wandb_run_name":None,
         "wandb_log_model":"checkpoint",
         "wandb_watch":'false',
     
@@ -125,7 +125,7 @@ def main(args):
     # Start a Weights & Biases run and log the config
     config = {**vars(args), **config}
     run = wandb.init(
-            name=args.run_name,
+            name=config.wandb_run_name,
             entity=args.wandb_entity,
             project=args.wandb_project,
             config=config)
@@ -252,7 +252,7 @@ def main(args):
     # Set training args
     training_args = Seq2SeqTrainingArguments(
         report_to="wandb",
-        run_name=args.run_name,
+        run_name=args.name,
         output_dir=args.output_dir,
         per_device_train_batch_size=args.per_device_train_batch_size,
         per_device_eval_batch_size=args.per_device_eval_batch_size,
@@ -263,7 +263,7 @@ def main(args):
         num_train_epochs=args.num_train_epochs,
         # logging & evaluation strategies
         logging_strategy="steps",
-        logging_steps=args.logging_steps,
+        logging_steps=5,
         evaluation_strategy=args.evaluation_strategy,
         save_strategy=args.save_strategy,
         save_total_limit=args.save_total_limit,
