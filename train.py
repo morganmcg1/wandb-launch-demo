@@ -40,6 +40,13 @@ def parse_args(input_args=None):
         help="Weights & Biases Team or Username to log to",
     )
     parser.add_argument(
+        "--wandb_run_name",
+        type=str,
+        default=None,
+        required=False,
+        help="Weights & Biases run name",
+    )
+    parser.add_argument(
         "--learning_rate",
         type=float,
         default=5e-5,
@@ -125,7 +132,7 @@ def main(args):
     # Start a Weights & Biases run and log the config
     config = {**vars(args), **config}
     run = wandb.init(
-            name=config.wandb_run_name,
+            name=args.wandb_run_name,
             entity=args.wandb_entity,
             project=args.wandb_project,
             config=config)
@@ -252,7 +259,7 @@ def main(args):
     # Set training args
     training_args = Seq2SeqTrainingArguments(
         report_to="wandb",
-        run_name=args.name,
+        run_name=args.wandb_run_name,
         output_dir=args.output_dir,
         per_device_train_batch_size=args.per_device_train_batch_size,
         per_device_eval_batch_size=args.per_device_eval_batch_size,
