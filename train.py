@@ -9,6 +9,7 @@
 
 import os
 import wandb
+import torch
 import argparse
 
 import evaluate
@@ -138,6 +139,10 @@ def main(args):
         print("Finising the wandb run and exiting...")
         run.finish()
         exit()
+
+    print(f"CUDA available: {torch.cuda.is_available()}")
+    print(f"CUDA device count: {torch.cuda.device_count()}")
+    print(f"CUDA current device: {torch.cuda.current_device()}")
 
     # Set environment variables for HF Trainer's wandb logging
     os.environ["WANDB_LOG_MODEL"] = args.wandb_log_model
