@@ -281,10 +281,11 @@ def main(args):
         per_device_eval_batch_size=args.per_device_eval_batch_size,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         predict_with_generate=True,
+        learning_rate=args.learning_rate,
+        warmup_steps=args.warmup_steps,
+        num_train_epochs=args.num_train_epochs,
         fp16=args.fp16,
         bf16=args.bf16,
-        learning_rate=args.learning_rate,
-        num_train_epochs=args.num_train_epochs,
         # logging & evaluation strategies
         logging_strategy="steps",
         logging_steps=5,
