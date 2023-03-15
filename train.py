@@ -191,7 +191,6 @@ def main(args):
     tokenizer = AutoTokenizer.from_pretrained(args.model_id)
     model = AutoModelForSeq2SeqLM.from_pretrained(args.model_id)
 
-
     # DATA PREPROCESSING
     # The maximum total input sequence length after tokenization. 
     # Sequences longer than this will be truncated, sequences shorter will be padded.
@@ -229,10 +228,8 @@ def main(args):
     tokenized_dataset = dataset.map(preprocess_function, batched=True, remove_columns=["dialogue", "summary", "id"])
     print(f"Keys of tokenized dataset: {list(tokenized_dataset['train'].features)}")
 
-    # METRICS
+    # Metrics
     nltk.download("punkt")
-
-    # Metric
     metric = evaluate.load("rouge")
 
     # helper function to postprocess text
@@ -292,6 +289,7 @@ def main(args):
         logging_strategy="steps",
         logging_steps=5,
         evaluation_strategy=args.evaluation_strategy,
+        eval_steps=args.eval_steps,
         save_strategy=args.save_strategy,
         save_total_limit=args.save_total_limit,
         load_best_model_at_end=True,
