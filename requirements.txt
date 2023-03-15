@@ -1,6 +1,6 @@
-torch
-wandb
-transformers
+torch>=1.13
+wandb>=0.14.0
+transformers>=4.26
 datasets
 evaluate
 rouge-score
