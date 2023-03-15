@@ -181,8 +181,8 @@ def main(args):
         dataset['test'] = dataset['test'].select(args.debug_dataset_indices)
 
     # Log the size our the dataset to Weights & Biases
-    config["train_dataset_size"] = len(dataset['train'])
-    config["test_dataset_size"] = len(dataset['test'])
+    run.config["train_dataset_size"] = len(dataset['train'])
+    run.config["test_dataset_size"] = len(dataset['test'])
     print(f"Train dataset size: {len(dataset['train'])}")
     print(f"Test dataset size: {len(dataset['test'])}")
 
