@@ -89,6 +89,18 @@ def parse_args(input_args=None):
         help="Evaluation batch size per device",
     )  
     parser.add_argument(
+        "--fp16",
+        default=False,
+        action="store_true",
+        help="Use fp16 during training",
+    )   
+    parser.add_argument(
+        "--bf16",
+        default=False,
+        action="store_true",
+        help="Use bf16 training",
+    )    
+    parser.add_argument(
         "--log_code_to_wandb_job_only",
         default=False,
         action="store_true",
@@ -118,7 +130,6 @@ def main(args):
 
         # HF Trainer arguments (except for those in `args`)
         "logging_steps":5,
-        "fp16":False,
         "evaluation_strategy":"steps", # "epoch",
         "eval_steps":100,
         "save_total_limit":2,
@@ -274,6 +285,7 @@ def main(args):
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         predict_with_generate=True,
         fp16=args.fp16,
+        bf16=args.bf16,
         learning_rate=args.learning_rate,
         num_train_epochs=args.num_train_epochs,
         # logging & evaluation strategies
