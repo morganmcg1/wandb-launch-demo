@@ -94,6 +94,12 @@ def parse_args(input_args=None):
         action="store_true",
         help="Only log the code to a Weights & Biases Job",
     )    
+    parser.add_argument(
+        "--debug_mode",
+        default=False,
+        action="store_true",
+        help="Run training in debug mode wtih a tiny dataset",
+    )    
 
     if input_args is not None:
         args = parser.parse_args(input_args)
@@ -124,7 +130,6 @@ def main(args):
         "wandb_watch":'false',
     
         # Debugging
-        "debug_mode":True,
         "debug_dataset_indices":list(range(128)),
     }   
     config["output_dir"] = f"{config['model_id'].split('/')[1]}-{config['dataset_id']}"
@@ -164,6 +169,9 @@ def main(args):
         dataset['train'] = dataset['train'].select(args.debug_dataset_indices)
         dataset['test'] = dataset['test'].select(args.debug_dataset_indices)
 
+    # Log the size our the dataset to Weights & Biases
+    config["train_dataset_size"] = len(dataset['train'])
+    config["test_dataset_size"] = len(dataset['test'])
     print(f"Train dataset size: {len(dataset['train'])}")
     print(f"Test dataset size: {len(dataset['test'])}")
 
@@ -275,7 +283,6 @@ def main(args):
         save_strategy=args.save_strategy,
         save_total_limit=args.save_total_limit,
         load_best_model_at_end=True,
-        # metric_for_best_model="overall_f1",
     )
 
     # Create Trainer instance
