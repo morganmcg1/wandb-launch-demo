@@ -1,6 +1,6 @@
-torch>=1.13
+torch>=2.0
 wandb>=0.14.0
-transformers>=4.26
+transformers>=4.27
 datasets
 evaluate
 rouge-score
