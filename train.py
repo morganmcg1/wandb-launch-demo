@@ -140,7 +140,7 @@ def parse_args(input_args=None):
         "--log_code_to_wandb_job_only",
         default=False,
         action="store_true",
-        help="Only log the code to a Weights & Biases Job",
+        help="Only log the code to a Weights & Biases Job and then exit the script. Useful for registering a Job",
     )    
     parser.add_argument(
         "--debug_mode",
