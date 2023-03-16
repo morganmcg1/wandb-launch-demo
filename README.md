@@ -22,4 +22,8 @@ A demo repo for Weights &amp; Biases Launch examples
     }
 }
 ```
-To test: `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu18.04`
+To test: 
+```
+nvidia/cuda:12.0.1-cudnn8-runtime-ubuntu18.04
+nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu18.04
+```
