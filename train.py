@@ -1,5 +1,6 @@
 '''
     This script is a simple example of how to use Weights & Biases Launch
+    to fine-tune a T5 model.
 
     Credits:
     This script is based on an example script from Philipp Schmid
@@ -45,6 +46,20 @@ def parse_args(input_args=None):
         default=None,
         required=False,
         help="Weights & Biases run name",
+    )
+    parser.add_argument(
+        "--dataset_id",
+        type=str,
+        default="samsum",
+        required=False,
+        help="Dataset from Hugging Face Datasets to use for training",
+    )
+    parser.add_argument(
+        "--model_id",
+        type=str,
+        default="google/flan-t5-base",
+        required=False,
+        help="Model to use for training",
     )
     parser.add_argument(
         "--learning_rate",
@@ -101,6 +116,27 @@ def parse_args(input_args=None):
         help="Use bf16 training",
     )    
     parser.add_argument(
+        "--save_strategy",
+        type=str,
+        default="steps",
+        required=False,
+        help="Save strategy to use for training. Can be 'steps', 'epoch' or 'no'",
+    )
+    parser.add_argument(
+        "--save_steps",
+        type=str,
+        default=200,
+        required=False,
+        help="If save_strategy is 'steps', save checkpoint every save_steps",
+    )
+    parser.add_argument(
+        "--wandb_log_model",
+        type=str,
+        default="checkpoint",
+        required=False,
+        help="Log model to Weights & Biases. Can be 'checkpoint', 'best' or 'all'",
+    )
+    parser.add_argument(
         "--log_code_to_wandb_job_only",
         default=False,
         action="store_true",
@@ -120,24 +156,68 @@ def parse_args(input_args=None):
 
     return args
 
+def preprocess_function(sample,padding="max_length"):
+    # add prefix to the input for t5
+    inputs = ["summarize: " + item for item in sample["dialogue"]]
+
+    # tokenize inputs
+    model_inputs = tokenizer(inputs, max_length=max_source_length, padding=padding, truncation=True)
+
+    # Tokenize targets with the `text_target` keyword argument
+    labels = tokenizer(text_target=sample["summary"], max_length=max_target_length, padding=padding, truncation=True)
+
+    # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
+    # padding in the loss.
+    if padding == "max_length":
+        labels["input_ids"] = [
+            [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
+        ]
+
+    model_inputs["labels"] = labels["input_ids"]
+    return model_inputs
+
+ # helper function to postprocess text
+def postprocess_text(preds, labels):
+    preds = [pred.strip() for pred in preds]
+    labels = [label.strip() for label in labels]
+
+    # rougeLSum expects newline after each sentence
+    preds = ["\n".join(sent_tokenize(pred)) for pred in preds]
+    labels = ["\n".join(sent_tokenize(label)) for label in labels]
+
+    return preds, labels
+
+# Metrics
+nltk.download("punkt")
+metric = evaluate.load("rouge")
+
+def compute_metrics(eval_preds):
+    preds, labels = eval_preds
+    if isinstance(preds, tuple):
+        preds = preds[0]
+    decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
+    # Replace -100 in the labels as we can't decode them.
+    labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
+    decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+    # Some simple post-processing
+    decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
+
+    result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
+    result = {k: round(v * 100, 4) for k, v in result.items()}
+    prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
+    result["gen_len"] = np.mean(prediction_lens)
+    return result
+
 def main(args):
-    # START A WANDB RUN
-
     config = {
-        # Dataset and model
-        "dataset_id":"samsum",
-        "model_id": "google/flan-t5-base",
-
         # HF Trainer arguments (except for those in `args`)
         "logging_steps":5,
         "evaluation_strategy":"steps", # "epoch",
         "eval_steps":100,
         "save_total_limit":2,
-        "save_strategy":"steps", # "epoch",
 
         # Trainer wandb settings
-        "wandb_run_name":None,
-        "wandb_log_model":"checkpoint",
         "wandb_watch":'false',
     
         # Debugging
@@ -204,62 +284,8 @@ def main(args):
     max_target_length = max([len(x) for x in tokenized_targets["input_ids"]])
     print(f"Max target length: {max_target_length}")
 
-
-    def preprocess_function(sample,padding="max_length"):
-        # add prefix to the input for t5
-        inputs = ["summarize: " + item for item in sample["dialogue"]]
-
-        # tokenize inputs
-        model_inputs = tokenizer(inputs, max_length=max_source_length, padding=padding, truncation=True)
-
-        # Tokenize targets with the `text_target` keyword argument
-        labels = tokenizer(text_target=sample["summary"], max_length=max_target_length, padding=padding, truncation=True)
-
-        # If we are padding here, replace all tokenizer.pad_token_id in the labels by -100 when we want to ignore
-        # padding in the loss.
-        if padding == "max_length":
-            labels["input_ids"] = [
-                [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
-            ]
-
-        model_inputs["labels"] = labels["input_ids"]
-        return model_inputs
-
     tokenized_dataset = dataset.map(preprocess_function, batched=True, remove_columns=["dialogue", "summary", "id"])
     print(f"Keys of tokenized dataset: {list(tokenized_dataset['train'].features)}")
-
-    # Metrics
-    nltk.download("punkt")
-    metric = evaluate.load("rouge")
-
-    # helper function to postprocess text
-    def postprocess_text(preds, labels):
-        preds = [pred.strip() for pred in preds]
-        labels = [label.strip() for label in labels]
-
-        # rougeLSum expects newline after each sentence
-        preds = ["\n".join(sent_tokenize(pred)) for pred in preds]
-        labels = ["\n".join(sent_tokenize(label)) for label in labels]
-
-        return preds, labels
-
-    def compute_metrics(eval_preds):
-        preds, labels = eval_preds
-        if isinstance(preds, tuple):
-            preds = preds[0]
-        decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
-        # Replace -100 in the labels as we can't decode them.
-        labels = np.where(labels != -100, labels, tokenizer.pad_token_id)
-        decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
-
-        # Some simple post-processing
-        decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-
-        result = metric.compute(predictions=decoded_preds, references=decoded_labels, use_stemmer=True)
-        result = {k: round(v * 100, 4) for k, v in result.items()}
-        prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in preds]
-        result["gen_len"] = np.mean(prediction_lens)
-        return result
 
     # DATA COLLATOR
     # we want to ignore tokenizer pad token in the loss
