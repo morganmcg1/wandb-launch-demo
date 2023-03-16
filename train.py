@@ -216,6 +216,7 @@ def main(args):
         "evaluation_strategy":"steps", # "epoch",
         "eval_steps":100,
         "save_total_limit":2,
+        "output_dir":f"{args.model_id.split('/')[1]}-{args.dataset_id}",
 
         # Trainer wandb settings
         "wandb_watch":'false',
@@ -223,7 +224,6 @@ def main(args):
         # Debugging
         "debug_dataset_indices":list(range(128)),
     }   
-    config["output_dir"] = f"{config['model_id'].split('/')[1]}-{config['dataset_id']}"
 
     # Start a Weights & Biases run and log the config
     config = {**vars(args), **config}
