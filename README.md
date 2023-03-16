@@ -12,7 +12,7 @@ A demo repo for Weights &amp; Biases Launch examples
 2. Eval
 - Eval script to load a pretrained-model and run evaluation
 
-Launch Queue Config
+## Launch Queue Config
 
 ```json
 {
@@ -22,3 +22,4 @@ Launch Queue Config
     }
 }
 ```
+To test: `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu18.04`
